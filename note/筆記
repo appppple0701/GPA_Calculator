@@ -1,0 +1,102 @@
+Excel 的基本原理：
+Excel 是一套讓使用者以圖形介面（GUI）操作資料的工具。你看到的是一格一格的表格，但檔案實際儲存時會被轉成 .xlsx 格式。
+
+
+(1)xlsx : 
+本質上是 ZIP 壓縮檔，裡面包含多個 XML 檔案，遵循 Office Open XML（OOXML） 標準。這些 XML 分別儲存：
+
+(2)工作表怎麼存？
+每個工作表（sheet）通常對應到一個 XML 檔，例如：
+
+xl/worksheets/sheet1.xml
+
+裡面會用像 <row>、<c>（cell）等標籤描述每一格的內容。
+
+(2)Excel 打開檔案時做什麼？
+當你開啟 .xlsx 時，Excel 會：
+解壓縮（或等效地讀取 ZIP 內容）
+解析 XML
+把資料重新渲染成你看到的表格 UI
+
+#以下為最初版本的gpa計算機
+#course credict score == 課程 學分 成績
+#grade4 == 4.0制等第
+#point4 == 4.0制積分
+#grade4.3 == 4.3制等第
+#point4 == 4.3制積分
+
+
+print("請輸入:課程 學分 學期成績 (以空行結束)")
+
+courses = {}
+creditTotal = 0
+GPA_weight4 = 0    #GPA *學分數
+GPA_weight43 = 0    #GPA *學分數
+while True:
+    line = input()
+    if line.strip() == "":    #若字串開頭為空 則結束
+        break
+
+    try:
+        course, credit, score = line.split()
+        credit = int(credit)
+        creditTotal += credit
+        score = int(score)   
+        
+        if score >= 80:
+            grade4 = "A"
+            point4 = 4
+            if 90 <= score <= 100:
+                grade43 = "A+"
+                point43 = 4.3
+            elif 85 <= score <= 89:
+                grade43 = "A"
+                point43 = 4.0
+            else:
+                grade43 = "A-"
+                point43 = 3.7
+        elif 70 <= score <= 79:
+            grade4 = "B"
+            point4 = 3
+            if 77 <= score <=79:
+                grade43 = "B+"
+                point43 = 3.3
+            elif 73<= score <=76:
+                grade43 = "B"
+                point43 = 3.0
+            else:
+                grade43=  "B-"
+                point43 = 2.7
+        elif 60 <= score <= 69:
+            grade4 = "C"
+            point4 = 2
+            if 67 <= score <= 69:
+                grade43 = "C+"
+                point43 = 2.3
+            elif 63 <= score <= 66:
+                grade43 = "C"
+                point43 = 2.0
+            else:
+                grade43 = "C-"
+                point43 = 1.7
+        elif score <= 59:
+            if score >=50:
+                grade4 = "D"
+                point4 = 1
+            else:
+                grade4 = "E"
+                point4 = 0
+            grade43 = "F"
+            point43 = 0
+        courses.update({course : [credit, score, grade4, point4, grade43, point43]})
+        GPA_weight4 += point4 *credit
+        GPA_weight43 += point43*credit
+    except ValueError:
+        print("白癡你輸入錯了 給我重新打一次這筆資料")
+
+print("課程名稱 成績 4分制等第 積分 4.3分制等第 積分")
+for i in courses:
+    print(i, *courses[i])
+GPA_4 = round(GPA_weight4 /creditTotal,2)
+GPA_43 = round(GPA_weight43 / creditTotal, 2)
+print(f'\n目前GPA : {GPA_4} / 4.0, {GPA_43} / 4.3 ')

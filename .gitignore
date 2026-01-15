@@ -1,0 +1,9 @@
+# Ignore all Excel files by default (avoid leaking real grades)
+*.xlsx
+
+# But allow the public sample file(s)
+!data/sample_grade.xlsx
+
+# Python cache
+__pycache__/
+*.pyc
