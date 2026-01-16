@@ -41,32 +41,46 @@ def score_to_point43(score):
     else:
         return 0
 
-#GPA計算 兩制度共用 : sigma(point * credit) / sigma(credit)
-def GPA(df, funct, term = None):
+#讀取檔案 : excel
+def load_excel(path):
+    df = pd.read_excel(path)
+    return df
 
-    mask = ( 
-        (df["count_gpa"] == 1) & 
-        (~df["score"].isna()) &
-        ((df["term"] == term) if term is not None else True) 
-        )
-    df = df.loc[mask].copy()     #為了避免panda不清楚要操作view或df本體 所以乾脆直接複製一份出來
+
+#GPA計算 兩制度共用 : sigma(point * credit) / sigma(credit)
+def calculate_gpa(df, system = "4.3", term = None):     #預設計算4.3制 並且範圍為所有資料
+
+    mask = (df["count_gpa"] == 1) & (~df["score"].isna())
+    if term is not None:
+        mask &= (df["term"] == term)
+    df = df.loc[mask].copy()      #為了避免panda不清楚要操作view或df本體 所以乾脆直接複製一份出來
     #loc : 直接用標籤來定位欄與列 (可以搭配mask 上面是在定位mask那幾列並複製)
 
+    #判斷要轉換的制度
+    if system == "4.3":
+        funct = score_to_point43
+    elif system == "4.0":
+        funct = score_to_point4
+    else:
+        raise ValueError("system must be '4.0' or '4.3' !!")
 
     df["point"] = df["score"].apply(funct)     #把成績轉換成點數
 
     point_sum = (df["point"] * df["credit"]).sum()     #point * credict
 
-    gpa = round(point_sum / (df["credit"].sum()),2)     #計算GPA
+    credits_sum = df["credit"].sum()
+    if credits_sum == 0:
+        return None
+
+    gpa = round(point_sum / (credits_sum),2)     #計算GPA
 
     return gpa 
 
 #主程式
-df = pd.read_excel("grade.xlsx")
+def main():
+    df = load_excel("data/sample_grade.xlsx")
+    gpa = calculate_gpa(df, "4.3")
+    print(gpa)
 
-print(GPA(df, score_to_point4))
-print(GPA(df, score_to_point43))
-print(GPA(df, score_to_point4, "2024-1"))
-print(GPA(df, score_to_point4, "2024-2"))
-print(GPA(df, score_to_point43, "2024-1"))
-print(GPA(df, score_to_point43, "2024-2"))
+if __name__ == "__main__":
+    main()
