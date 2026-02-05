@@ -77,6 +77,7 @@ def calculate_gpa(df, system = "4.3", term = None):     #預設計算4.3制 並�
     return gpa 
 
 #主程式
+'''
 def main():
     df = load_excel("data/sample_grade.xlsx")
     gpa = calculate_gpa(df, "4.3")
@@ -84,3 +85,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+'''

@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-df = pd.read_excel("sample_grade.xlsx")
+df = pd.read_excel("data/sample_grade.xlsx")
 
 #1. st.write() : 印出東西
 st.write("1. st.write()")
@@ -74,7 +74,7 @@ if st.button("刷新"):
         bar.progress(i)
     st.write("運行結束")
 
-#11. stfile_uploader() : 上傳文件
+#11. st.file_uploader() : 上傳文件
 st.write("11. st.file_uploader()")
 upload_file = st.file_uploader(
     label = "請上傳文件"
@@ -86,3 +86,15 @@ if upload_file is not None:
     st.write(df)
 else:
     st.write("請上傳CSV文件")
+
+#12. st.data.editor() : 修改data
+st.write("12. st.data.editor()")
+df = pd.DataFrame({
+    "course": ["數學", "英文", "程式設計"],
+    "score": [90, 85, 95],
+    "include": [True, True, True]
+})
+
+edited_df = st.data_editor(df)
+st.write("編輯後的資料：")
+st.write(edited_df)

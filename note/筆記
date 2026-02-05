@@ -100,3 +100,10 @@ for i in courses:
 GPA_4 = round(GPA_weight4 /creditTotal,2)
 GPA_43 = round(GPA_weight43 / creditTotal, 2)
 print(f'\n目前GPA : {GPA_4} / 4.0, {GPA_43} / 4.3 ')
+
+
+st.title("GPA Calculator")      # 最大
+st.header("GPA Summary")
+st.subheader("Semester GPA")
+st.write("一般大小文字")
+st.caption("這是小字備註")
