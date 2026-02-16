@@ -42,8 +42,8 @@ def score_to_point43(score):
         return 0
 
 #讀取檔案 : excel
-def load_excel(path):
-    df = pd.read_excel(path)
+def load_excel(path, sheet_name):
+    df = pd.read_excel(path, sheet_name=sheet_name)
     return df
 
 
@@ -75,14 +75,19 @@ def calculate_gpa(df, system = "4.3", term = None):     #預設計算4.3制 並�
     gpa = round(point_sum / (credits_sum),2)     #計算GPA
 
     return gpa 
+#-----------------------------------------------------------------------------------------
 
-#主程式
-'''
-def main():
-    df = load_excel("data/sample_grade.xlsx")
-    gpa = calculate_gpa(df, "4.3")
-    print(gpa)
-
-if __name__ == "__main__":
-    main()
-'''
+#rank排名計算邏輯
+def calculate_pr(rank, size):
+    if pd.isna(rank) or pd.isna(size):
+        return None
+    try:
+        rank = int(rank)
+        size = int(size)
+    except:
+        return None
+    if rank <= 0 or size <= 0:
+        return None
+    
+    pr = ( 1 - ( rank - 1 ) / size ) * 100
+    return round(pr, 1)
