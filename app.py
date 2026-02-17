@@ -137,17 +137,23 @@ df_gpa = pd.DataFrame({
     "gpa" : gpas
 })
 
-gpa_left_column, gpa_right_column = st.columns(2)
-#排版用
+#排版用---------------------------------------------------------------------------------------------------
+left_column1, right_column1 = st.columns(2)
+left_column2, mid_column2, right_column2 = st.columns(3)
+left_column3, right_column3 = st.columns(2)
+#排版用---------------------------------------------------------------------------------------------------
 
+#GPA相關資料''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 #顯示歷年GPA
-gpa_left_column.write("歷年GPA結果")
-gpa_left_column.write(df_gpa)
+left_column1.write("歷年GPA結果")
+left_column1.write(df_gpa)
 
 #顯示GPA折線圖
-st.write("GPA折線圖")
-st.line_chart(df_gpa, x = "term", y = "gpa")
+right_column1.write("GPA折線圖")
+right_column1.line_chart(df_gpa, x = "term", y = "gpa")
 
+
+#排名相關資料''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 #產生歷年排名的df
 terms = sorted(df_ranks["term"].unique())
 
@@ -176,19 +182,17 @@ df_rank = pd.DataFrame({
 })
 
 #顯示歷年排名
-gpa_right_column.write("歷年排名結果")
-gpa_right_column.write(df_rank)
-
-rank_left_column, rank_right_column = st.columns(2)
+left_column2.write("歷年排名結果")
+left_column2.write(df_rank)
 
 #顯示排名折線圖
-rank_left_column.write("排名折線圖(Pr)")
-rank_left_column.line_chart(df_rank, x = "term", y = ["class_pr", "dept_pr"])
+mid_column2.write("排名折線圖(Pr)")
+mid_column2.line_chart(df_rank, x = "term", y = ["class_pr", "dept_pr"])
 
 #顯示排名折線圖
 import altair as alt     
 
-rank_right_column.write("排名折線圖（數字越小代表表現越好）")
+right_column2.write("排名折線圖（數字越小代表表現越好）")
 
 chart = alt.Chart(df_rank).mark_line(point=True).encode(
     x=alt.X("term:N", title="學期"),
@@ -200,4 +204,19 @@ chart = alt.Chart(df_rank).mark_line(point=True).encode(
     tooltip=["term", "class_rank"]
 )
 
-rank_right_column.altair_chart(chart, use_container_width=True)
+right_column2.altair_chart(chart, use_container_width=True)
+
+#學期成績相關資料''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+#建立歷年學期成績df
+df_sem_grade = pd.DataFrame({
+    "term" : df_ranks["term"],
+    "sem_grade" : df_ranks["sem_grade"]
+})
+
+#顯示歷年學期成績
+left_column3.write("歷年學期成績")
+left_column3.write(df_sem_grade)
+
+#顯示學期成績折線圖
+right_column3.write("學期成績折線圖")
+right_column3.line_chart(df_sem_grade, x = "term", y = "sem_grade")
