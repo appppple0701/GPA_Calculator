@@ -220,3 +220,9 @@ left_column3.write(df_sem_grade)
 #顯示學期成績折線圖
 right_column3.write("學期成績折線圖")
 right_column3.line_chart(df_sem_grade, x = "term", y = "sem_grade")
+
+#回饋表單
+with st.sidebar:
+    st.markdown("### 📝 使用回饋")
+    st.markdown("[👉 點我填寫回饋表單](https://forms.gle/2ZFEE3JVatDS5RYu9)")
+    
