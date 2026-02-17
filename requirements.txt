@@ -1,5 +1,4 @@
-pandas
 streamlit
-io
-openpyxl.comments
+pandas
+openpyxl
 altair
