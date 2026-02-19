@@ -75,24 +75,30 @@ def build_template_xlsx() -> bytes:
     bio.seek(0)
     return bio.getvalue()
 
-#讓使用者下載模板
-#st.write("下載 Excel 模板")
-#st.caption("請依照格式與註解填寫")
-
-st.download_button(
-    label="下載 GPA Excel 模板",
-    data=build_template_xlsx(),
-    file_name="gpa_template.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-)
-st.write("")
-
 #判斷使用者是否正確上傳檔案
 if file is not None:
     df_courses = gpa.load_excel(file, "courses")     #用來分析GPA
     df_ranks = gpa.load_excel(file, "ranks")     #用來分析排名
 else:
     st.caption("請上傳Excel檔案，或下載模板填寫")
+    #讓使用者下載模板
+    #st.write("下載 Excel 模板")
+    #st.caption("請依照格式與註解填寫")
+    st.write("方法1 : 外校學生請下載模板")
+    image1, image2= st.columns(2)
+    image3, image4= st.columns(2)
+    image1.image("image/下載模板.png",caption= "(1)點擊 \"下載GPA Excel模板\"")
+    image2.image("image/填寫模板1.png", caption="(2)依照格式填寫sheet1 \"courses\" (一行一筆資料)")
+    image3.image("image/填寫模板2.png", caption="(3)依照格式填寫sheet2 \"ranks\" (一行一筆資料)")
+    image4.image("image/上傳資料.png", caption="(4)將填好的Excel下載 並且上傳至 \"GPA CALCULATOR\"")
+    st.download_button(
+    label="下載 GPA Excel 模板",
+    data=build_template_xlsx(),
+    file_name="gpa_template.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    st.write("")
+    st.write("方法2 : 高師大學生請至\"單一登入平台\"的\"歷年成績查詢\"複製資料並且直接貼到空白Excel")
     st.stop()
 
 #預覽與勾選課程區
@@ -142,6 +148,7 @@ left_column1, right_column1 = st.columns(2)
 left_column2, mid_column2, right_column2 = st.columns(3)
 left_column3, right_column3 = st.columns(2)
 #排版用---------------------------------------------------------------------------------------------------
+
 
 #GPA相關資料''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 #顯示歷年GPA
