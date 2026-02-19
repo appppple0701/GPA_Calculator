@@ -77,29 +77,33 @@ def build_template_xlsx() -> bytes:
 
 #判斷使用者是否正確上傳檔案
 if file is not None:
-    df_courses = gpa.load_excel(file, "courses")     #用來分析GPA
-    df_ranks = gpa.load_excel(file, "ranks")     #用來分析排名
+    df_courses, df_ranks = gpa.load_grade_file_auto(file)
 else:
-    st.caption("請上傳Excel檔案，或下載模板填寫")
+    #st.caption("請上傳Excel檔案，或下載模板填寫")
     #讓使用者下載模板
     #st.write("下載 Excel 模板")
-    #st.caption("請依照格式與註解填寫")
-    st.write("方法1 : 外校學生請下載模板")
-    image1, image2= st.columns(2)
-    image3, image4= st.columns(2)
-    image1.image("image/下載模板.png",caption= "(1)點擊 \"下載GPA Excel模板\"")
-    image2.image("image/填寫模板1.png", caption="(2)依照格式填寫sheet1 \"courses\" (一行一筆資料)")
-    image3.image("image/填寫模板2.png", caption="(3)依照格式填寫sheet2 \"ranks\" (一行一筆資料)")
-    image4.image("image/上傳資料.png", caption="(4)將填好的Excel下載 並且上傳至 \"GPA CALCULATOR\"")
-    st.download_button(
-    label="下載 GPA Excel 模板",
-    data=build_template_xlsx(),
-    file_name="gpa_template.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
     st.write("")
-    st.write("方法2 : 高師大學生請至\"單一登入平台\"的\"歷年成績查詢\"複製資料並且直接貼到空白Excel")
-    st.stop()
+    st.caption("匯入方式教學")
+    with st.expander("模板匯入 (適用於所有學校)"):
+        image1, image2 = st.columns(2)
+        image3, image4 = st.columns(2)
+        image1.image("image/下載模板.png",caption= "(1)點擊 \"下載GPA Excel模板\"")
+        image2.image("image/填寫模板1.png", caption="(2)依照格式填寫sheet1 \"courses\" (一行一筆資料)")
+        image3.image("image/填寫模板2.png", caption="(3)依照格式填寫sheet2 \"ranks\" (一行一筆資料)")
+        image4.image("image/上傳資料.png", caption="(4)將填好的Excel下載 並且上傳至 \"GPA CALCULATOR\"")
+        st.download_button(
+        label="下載 GPA Excel 模板",
+        data=build_template_xlsx(),
+        file_name="gpa_template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    with st.expander("高師大快速匯入 (免整理格式)"):
+        st.write("(1)高師大學生請至\"單一登入平台\"的\"歷年成績查詢\"複製資料並且直接貼到空白Excel")
+        st.image("image/歷年成績查詢.png",caption="")
+        st.image("image/複製資料.png",caption="")
+        st.write("(2)將複製好的Excel下載(直接貼上就好不需整理), 並且上傳至 \"GPA CALCULATOR\"")
+        st.image("image/貼到excel.png",caption="")
+        st.stop()
 
 #預覽與勾選課程區
 st.subheader("課程預覽")
@@ -232,4 +236,5 @@ right_column3.line_chart(df_sem_grade, x = "term", y = "sem_grade")
 with st.sidebar:
     st.markdown("### 📝 使用回饋")
     st.markdown("[👉 點我填寫回饋表單](https://forms.gle/2ZFEE3JVatDS5RYu9)")
-    
+
+

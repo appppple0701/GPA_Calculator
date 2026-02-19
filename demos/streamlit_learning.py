@@ -98,3 +98,8 @@ df = pd.DataFrame({
 edited_df = st.data_editor(df)
 st.write("編輯後的資料：")
 st.write(edited_df)
+
+#12. st.data.editor() : 修改data
+st.write("13. st.expander()")
+with st.expander("測試", expanded= False):
+    st.write("使用模板")
