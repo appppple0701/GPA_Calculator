@@ -1,3 +1,4 @@
+#模組和模板
 #主要邏輯與前端
 import gpa
 import streamlit as st
@@ -7,18 +8,9 @@ import pandas as pd
 from io import BytesIO     
 from openpyxl.comments import Comment
 
-#網頁標題
-st.title("GPA CALCULATOR")
-
-
-#檔案上傳區
-st.subheader("檔案上傳")
-file = st.file_uploader(label = "請上傳Excel檔案，或下載模板")
-
-
-#模板下載區
+#這個shit會回傳一個模板
 def build_template_xlsx() -> bytes:
-    # === courses sheet（欄位順序完全照你給的）===
+#courses sheet
     df_courses = pd.DataFrame(columns=[
         "term",
         "course",
@@ -27,7 +19,7 @@ def build_template_xlsx() -> bytes:
         "count_gpa",
     ])
 
-    # === ranks sheet（欄位順序完全照你給的）===
+#ranks sheet
     df_ranks = pd.DataFrame(columns=[
         "term",
         "class_rank",
@@ -44,7 +36,7 @@ def build_template_xlsx() -> bytes:
 
         wb = writer.book
 
-        # --- courses 註解 ---
+        #courses的註解
         ws = wb["courses"]
         ws["A1"].comment = Comment(
             "學年度-學期，例如 2024-1；1=上學期(Fall)，2=下學期(Spring)",
@@ -59,7 +51,7 @@ def build_template_xlsx() -> bytes:
         )
         ws.freeze_panes = "A2"
 
-        # --- ranks 註解 ---
+        #ranks的註解
         ws2 = wb["ranks"]
         ws2["A1"].comment = Comment(
             "學年度-學期，需與 courses 的 term 對齊",
@@ -75,38 +67,202 @@ def build_template_xlsx() -> bytes:
     bio.seek(0)
     return bio.getvalue()
 
-#判斷使用者是否正確上傳檔案
-if file is not None:
-    df_courses, df_ranks = gpa.load_grade_file_auto(file)
-else:
-    #st.caption("請上傳Excel檔案，或下載模板填寫")
-    #讓使用者下載模板
-    #st.write("下載 Excel 模板")
-    st.write("")
-    st.caption("匯入方式教學")
-    with st.expander("模板匯入 (適用於所有學校)"):
-        image1, image2 = st.columns(2)
-        image3, image4 = st.columns(2)
-        image1.image("image/下載模板.png",caption= "(1)點擊 \"下載GPA Excel模板\"")
-        image2.image("image/填寫模板1.png", caption="(2)依照格式填寫sheet1 \"courses\" (一行一筆資料)")
-        image3.image("image/填寫模板2.png", caption="(3)依照格式填寫sheet2 \"ranks\" (一行一筆資料)")
-        image4.image("image/上傳資料.png", caption="(4)將填好的Excel下載 並且上傳至 \"GPA CALCULATOR\"")
+#高師大學生快速貼上
+import re
+from io import StringIO
+from datetime import datetime
+
+#把原始資料轉成兩個sheets
+def parse_nknu_paste_text(raw: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    raw = (raw or "").strip()
+    if not raw:
+        raise ValueError("Empty paste text")
+
+    term_re = re.compile(r"(\d{3})\s*學年度.*第\s*([12])\s*學期")
+    courses = []
+    ranks = []
+
+    current_term = None
+    sem_grade = None
+    class_rank = None
+    class_size = None
+
+    def flush_rank():
+        nonlocal sem_grade, class_rank, class_size, current_term
+        if current_term is None:
+            return
+        ranks.append({
+            "term": current_term,
+            "class_rank": class_rank,
+            "class_size": class_size,
+            "dept_rank": None,
+            "dept_size": None,
+            "sem_grade": sem_grade,
+        })
+
+    def split_cols(line: str) -> list[str]:
+        # 先用 tab 拆；若沒有 tab，再用 2 個以上空白拆
+        if "\t" in line:
+            cols = [c.strip() for c in line.split("\t")]
+        else:
+            cols = [c.strip() for c in re.split(r"\s{2,}", line.strip())]
+        return [c for c in cols if c != ""]
+
+    lines = raw.splitlines()
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        # --- 學期標題 ---
+        m = term_re.search(line)
+        if m:
+            flush_rank()
+            roc = int(m.group(1))
+            sem = int(m.group(2))
+            year = roc + 1911
+            current_term = f"{year}-{sem}"
+            sem_grade = None
+            class_rank = None
+            class_size = None
+            continue
+
+        if current_term is None:
+            continue
+
+        #摘要
+        if "學期平均" in line:
+            cols = split_cols(line)
+            # 常見：學期平均 ... 83.21/85
+            last = cols[-1] if cols else ""
+            last = last.replace("／", "/").replace(" ", "")
+            try:
+                sem_grade = float(last.split("/")[0])
+            except:
+                sem_grade = None
+            continue
+
+        #學期名次
+        if "學期名次" in line:
+            cols = split_cols(line)
+            last = cols[-1] if cols else ""
+            last = last.replace("／", "/").replace(" ", "")
+            parts = last.split("/")
+            if len(parts) >= 2:
+                try:
+                    class_rank = int(float(parts[0]))
+                except:
+                    class_rank = None
+                try:
+                    class_size = int(float(parts[1]))
+                except:
+                    class_size = None
+            continue
+
+        #表頭略過
+        if line.startswith("科目名稱"):
+            continue
+
+        #課程列
+        cols = split_cols(line)
+        # 典型欄位：科目名稱 | 學分 | 歸類 | 必選修 | 分數
+        # 我們只需要：course=0, credit=1, score=最後一欄
+        if len(cols) < 2:
+            continue
+
+        course = cols[0]
+        credit_raw = cols[1]
+        score_raw = cols[-1]
+
+        # 避免把摘要列當課程
+        if any(k in course for k in ["修習學分", "學期平均", "學期名次"]):
+            continue
+
+        # credit: 可能是 -3（不列入本系學分），我們先轉數字再 abs
+        credit_val = None
+        try:
+            credit_val = abs(float(str(credit_raw).replace("－", "-")))
+        except:
+            credit_val = None
+
+        # score: 可能是 未送/空白
+        score_val = None
+        s = str(score_raw).strip()
+        if s in ("未送", "-", ""):
+            score_val = None
+        else:
+            try:
+                score_val = float(s)
+            except:
+                score_val = None
+
+        courses.append({
+            "term": current_term,
+            "course": course,
+            "score": score_val,
+            "credit": credit_val,
+            "count_gpa": 1,   # 先預設都列入，使用者可在前端取消勾選
+        })
+
+    flush_rank()
+
+    df_courses = pd.DataFrame(courses, columns=["term", "course", "score", "credit", "count_gpa"])
+    df_ranks = pd.DataFrame(ranks, columns=["term", "class_rank", "class_size", "dept_rank", "dept_size", "sem_grade"])
+    return df_courses, df_ranks
+
+#前端'''
+#------------------------網頁標題-------------------------------------
+st.title("GPA CALCULATOR")
+
+#選擇資料匯入方式
+#用側邊欄選擇
+load = st.sidebar.radio("請選擇資料上傳方式", ["上傳Excel", "高師大學生快速匯入"])
+#選擇模板匯入
+if load == "上傳Excel":
+    st.subheader("檔案上傳")
+    file = st.file_uploader(label= "請上傳資料或下載模板")
+    if file is not None:     #已上傳檔案 則顯示分析
+        df_courses, df_ranks = gpa.load_grade_file_auto(file)
+    else:     #未上傳檔案則顯示教學(用砂小expander放)
+        #st.caption("檔案格式與上傳示範")
+        #模板下載按鈕
         st.download_button(
-        label="下載 GPA Excel 模板",
-        data=build_template_xlsx(),
-        file_name="gpa_template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            label = "下載GPA Excel模板",
+            data = build_template_xlsx(),
+            file_name = "成績單模板.xlsx",
+            mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-    with st.expander("高師大快速匯入 (免整理格式)"):
-        st.write("(1)高師大學生請至\"單一登入平台\"的\"歷年成績查詢\"複製資料並且直接貼到空白Excel")
-        st.image("image/歷年成績查詢.png",caption="")
-        st.image("image/複製資料.png",caption="")
-        st.write("(2)將複製好的Excel下載(直接貼上就好不需整理), 並且上傳至 \"GPA CALCULATOR\"")
-        st.image("image/貼到excel.png",caption="")
+
+        #顯示教學
+        with st.expander("模板匯入 (適用於所有學校)"):
+            image1, image2 = st.columns(2)
+            image3, image4 = st.columns(2)
+            image1.image("image/下載模板.png",caption= "(1)點擊 \"下載GPA Excel模板\"")
+            image2.image("image/填寫模板1.png", caption="(2)依照格式填寫sheet1 \"courses\" (一行一筆資料)")
+            image3.image("image/填寫模板2.png", caption="(3)依照格式填寫sheet2 \"ranks\" (一行一筆資料)")
+            image4.image("image/上傳資料.png", caption="(4)將填好的Excel下載 並且上傳至 \"GPA CALCULATOR\"")
         st.stop()
 
-#預覽與勾選課程區
-st.subheader("課程預覽")
+#選擇高師快速貼上
+elif load == "高師大學生快速匯入":
+    st.subheader("資料貼上區")
+    #讀文字進去 存在raw變數
+    raw = st.text_area("貼上高師大歷年成績（Ctrl+V）", height=220)
+
+    if not raw.strip():     #如果掃上來是空的 顯示教學按鈕 
+        with st.expander("高師大快速匯入 (免整理格式)"):
+            st.image("image/歷年成績查詢.png",caption="(1)高師大學生請至\"單一登入平台\"的\"歷年成績查詢\"複製資料")
+            st.image("image/複製資料.png",caption="(2)將複製好的資料完整貼上\"資料上傳區\"")
+            #st.image("image/貼到excel.png",caption="(2)將複製好的資料完整貼上\"資料上傳區\"")
+            st.stop()
+    try:
+        df_courses, df_ranks = parse_nknu_paste_text(raw)
+    except Exception as e:
+        st.error(f"解析失敗：{e}")
+        st.stop()
+
+#-------------------課程預覽區-------------------------------------
+st.subheader("課程預覽與勾選")
 st.caption("請勾選要列入計算之課程")
 df_courses["include"] = df_courses["count_gpa"].fillna(1).astype(int).eq(1)
 #根據count_gpa這個欄位，產生內部用的欄位include
@@ -126,10 +282,9 @@ df_courses_edit = st.data_editor(
 
 df_courses_calc = df_courses_edit[df_courses_edit["include"]].copy()
 #產生一張新的df(複製出來的，不要影響原資料)
-st.write("")
 
 
-#結果分析區
+#--------------------結果分析區----------------------------------
 st.subheader("分析結果")
 system = st.radio("請選擇GPA制度",("4.0", "4.3"))
 
@@ -153,8 +308,7 @@ left_column2, mid_column2, right_column2 = st.columns(3)
 left_column3, right_column3 = st.columns(2)
 #排版用---------------------------------------------------------------------------------------------------
 
-
-#GPA相關資料''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+#----------------------GPA相關資料''''''''''''''''''''''''''''''''''
 #顯示歷年GPA
 left_column1.write("歷年GPA結果")
 left_column1.write(df_gpa)
@@ -164,7 +318,7 @@ right_column1.write("GPA折線圖")
 right_column1.line_chart(df_gpa, x = "term", y = "gpa")
 
 
-#排名相關資料''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+#-----------------------排名相關資料'''''''''''''''''''''''
 #產生歷年排名的df
 terms = sorted(df_ranks["term"].unique())
 
@@ -217,7 +371,7 @@ chart = alt.Chart(df_rank).mark_line(point=True).encode(
 
 right_column2.altair_chart(chart, use_container_width=True)
 
-#學期成績相關資料''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+#-------------------------學期成績相關資料'''''''''''''''''''''''''''''''-
 #建立歷年學期成績df
 df_sem_grade = pd.DataFrame({
     "term" : df_ranks["term"],
@@ -232,9 +386,7 @@ left_column3.write(df_sem_grade)
 right_column3.write("學期成績折線圖")
 right_column3.line_chart(df_sem_grade, x = "term", y = "sem_grade")
 
-#回饋表單
-with st.sidebar:
-    st.markdown("### 📝 使用回饋")
-    st.markdown("[👉 點我填寫回饋表單](https://forms.gle/2ZFEE3JVatDS5RYu9)")
 
 
+#st.sidebar.markdown("### 📝 使用回饋")
+#st.sidebar.markdown("[👉 點我填寫回饋表單](https://forms.gle/2ZFEE3JVatDS5RYu9)")
