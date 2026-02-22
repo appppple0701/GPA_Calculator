@@ -67,6 +67,16 @@ def build_template_xlsx() -> bytes:
     bio.seek(0)
     return bio.getvalue()
 
+#讓高師大學生也能拿到excel檔
+def build_result_xlsx(df_courses: pd.DataFrame, df_ranks: pd.DataFrame) -> bytes:
+    bio = BytesIO()
+
+    with pd.ExcelWriter(bio, engine="openpyxl") as writer:
+        df_courses.to_excel(writer, sheet_name="courses", index=False)
+        df_ranks.to_excel(writer, sheet_name="ranks", index=False)
+
+    bio.seek(0)
+    return bio.getvalue()
 #高師大學生快速貼上
 import re
 from io import StringIO
@@ -386,7 +396,14 @@ left_column3.write(df_sem_grade)
 right_column3.write("學期成績折線圖")
 right_column3.line_chart(df_sem_grade, x = "term", y = "sem_grade")
 
+st.subheader("成績單下載")
 
+st.download_button(
+    label="下載成績單 (Excel格式)",
+    data=build_result_xlsx(df_courses_calc, df_ranks),
+    file_name="GPA成績單.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
 
 #st.sidebar.markdown("### 📝 使用回饋")
 #st.sidebar.markdown("[👉 點我填寫回饋表單](https://forms.gle/2ZFEE3JVatDS5RYu9)")
