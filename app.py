@@ -322,9 +322,12 @@ left_column3, right_column3 = st.columns(2)
 #顯示歷年GPA
 left_column1.write("歷年GPA結果")
 left_column1.write(df_gpa)
+left_column1.subheader(f"平均GPA結果 : {gpa.calculate_gpa(df_courses_calc, system)}")
+#left_column1.write(gpa.calculate_gpa(df_courses_calc, system))
 
 #顯示GPA折線圖
 right_column1.write("GPA折線圖")
+#right_column1.write(gpa.calculate_gpa(df_courses_calc, system))
 right_column1.line_chart(df_gpa, x = "term", y = "gpa")
 
 
